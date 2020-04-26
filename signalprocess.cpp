@@ -112,16 +112,28 @@ namespace itpp {
         return ret;
     }
     mat abs(const cmat& x) {
-        mat ret = zeros(x.rows(),x.cols());
+        mat ret = zeros(x.rows(), x.cols());
         for (int i = 0; i < x.rows(); i++) {
-            for (int j = 0; j< x.cols(); j++) {
-                ret(i,j) = std::abs(x(i,j));
+            for (int j = 0; j < x.cols(); j++) {
+                ret(i, j) = std::abs(x(i, j));
             }
         }
         return ret;
     }
-
-
+}
+arma::Mat<double> itppVecToArmaMat(const vec &v) {
+    arma::Mat<double> ret(1,v.size());
+    for (int i = 0; i < v.size(); i++) {
+        ret(0, i) = v(i);
+    }
+    return ret;
+}
+itpp::vec armaMatToItppVec(const arma::Mat<double> &matrix) {
+    vec ret(matrix.n_cols);
+    for (int i = 0; i < matrix.n_cols; i++) {
+        ret(i) = matrix(0, i);
+    }
+    return ret;
 }
 QVector<QPointF> zipVec2QVecPointF(const QVector<double>& v1, const QVector<double>& v2) {
     int size = v1.size() < v2.size() ? v1.size() : v2.size();
@@ -175,7 +187,22 @@ mat nSegFFT(const vec& x, int N, long fs) {
     mat point = zip(axis_x, axis_y);
     return point;
 }
-
+mat nSecondFFT(const vec& x, long fs,float sec) {
+    int numsOfPoint = floor(sec * fs);
+    int N = itpp::pow2(nextpow2(numsOfPoint));
+    vec axis_x(N / 2);
+    vec axis_y(N / 2);
+    mat points(N / 2, 2);
+    for (int i = 0; i < (N >> 1); i++) {
+        axis_x[i] = i * fs / N;
+    }
+    vec sub_x = x(0,N);
+    cvec Y = fft_real(sub_x,N);
+    vec amp = itpp::abs(Y);
+    axis_y = amp(0, N >> 1);
+    mat point = zip(axis_x, axis_y);
+    return point;
+}
 cvec hilbert(const vec& xn, int N) {
     int n = xn.size();
     int fftN = itpp::pow2(nextpow2(xn.size()));
@@ -211,6 +238,7 @@ cvec hilbert(const vec& xn, int N) {
         result[i].imag(y2(i).imag());
     }
     return result;
+
 }
 vec  EnvelopeSpectrum(const vec& x) {
     cvec hx = hilbert(x);
@@ -220,8 +248,7 @@ vec  EnvelopeSpectrum(const vec& x) {
     vec axis_y = itpp::abs(itpp::fft_real(y, y.size()));
     return axis_y;
 }
-# if 0
-vec de_resonance(const vec &x, long fs,int fl,int fll,int fh,int fhh,std::string window_model) {
+vec de_resonance(vec &x, long fs,int fl,int fll,int fh,int fhh,std::string window_model) {
  /*    """
      :param x：原信号
      :param fl: 通带起始频率
@@ -268,19 +295,27 @@ vec de_resonance(const vec &x, long fs,int fl,int fll,int fh,int fhh,std::string
         M = N + (N + 1) % 2;  //# 使滤波器为I型(偶数)
         window = blackman(M);  // #
     }
+    //使用hamming窗
+    N = ceil(6.6 * pi / tr_width);//  # 滤波器长度
+    M = N + (N + 1) % 2;         // # 使滤波器为I型(偶数)
+    window = hamming(M);        //  #
+
     vec bands = zeros(6);
     bands[1] = fll;
     bands[2] = fl;
     bands[3] = fh;
     bands[4] = fhh;
     bands[5] = fs / 2;
-    vec desired = zeros(6);
-    desired[2] = 1;
-    desired[3] = 1;
-    //bm = firls(M, bands, desired, fs = fs)
-    //y = lfilter(bm, 1, x)
-    vec y = abs(hilbert(y));
+
+    // Create a FIR filter
+    sp::FIR_filt<double, double, double> fir_filt;
+    auto b = sp::fir1_bp(M, fll,fhh);
+    fir_filt.set_coeffs(b);
+    arma::Mat<double> data = itppVecToArmaMat(x);
+
+    arma::Mat<double> y_mat = fir_filt.filter(data);
+    vec y = armaMatToItppVec(y_mat);
+    y = abs(hilbert(y));
     return y;
 }
-#endif
 

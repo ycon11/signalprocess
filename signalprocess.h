@@ -11,6 +11,7 @@
 #include <itpp/itbase.h>
 #include <itpp/itsignal.h>
 #include <itpp/itstat.h>
+#include <sigpack.h>
 #include <string>
 using namespace itpp;
 namespace itpp {
@@ -26,8 +27,11 @@ namespace itpp {
 }
 QVector<QPointF> zipVec2QVecPointF(const QVector<double>& v1, const QVector<double>& v2);
 QVector<double> vec2QVec(const itpp::vec& v);
+arma::Mat<double> itppVecToArmaMat(const vec& v);
+itpp::vec armaMatToItppVec(const arma::Mat<double>& matrix);
 vec qVec2Vec(const QVector<double>& v);
 mat nSegFFT(const vec& x, int N, long fs);
+mat nSecondFFT(const vec& x, long fs, float sec);
 cvec hilbert(const vec& xn, int N = 0);
 vec EnvelopeSpectrum(const vec& x);
 #endif // SIGNALPROCESS_H

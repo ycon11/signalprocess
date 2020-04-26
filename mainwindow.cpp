@@ -87,21 +87,24 @@ MainWindow::MainWindow(const QAudioDeviceInfo& deviceInfo, QWidget* parent)
     int FS = 12000;
     vec pointsVec = qVec2Vec(points);
     auto YK = nSegFFT(pointsVec,N,12000);
-    QVector<QPointF> points2(YK.rows() / 2);
-    for (int i = 0; i < YK.rows() / 2; i++) {
+    qDebug() <<"============================= " <<YK.rows() ;
+    QVector<QPointF> points2(YK.rows());
+    for (int i = 0; i < YK.rows() ; i++) {
         points2[i].setX(YK(i,0));
         points2[i].setY(YK(i,1));
     }
 
    //°üÂçÆ×
-    vec h = EnvelopeSpectrum(pointsVec);
+    float sec = 0.5;
+    int numsOfPoints = floor(FS * sec);
+    vec sub_x = pointsVec(0, numsOfPoints);
+    vec h = EnvelopeSpectrum(sub_x);
     int size = h.size();
     QVector<QPointF> points3(size);
     for (int i = 0; i < size; i++) {
         points3[i].setX(i*FS/size);
         points3[i].setY(h(i));
     }
-
     widget = new QWidget;
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
@@ -114,25 +117,33 @@ MainWindow::MainWindow(const QAudioDeviceInfo& deviceInfo, QWidget* parent)
     //wave1->getAxis(Qt::Vertical)->setTitleText("Audio level");
     //wave1->setSeries(points2);
 
+    wave1 = new Wave();
+    wave1->setMinimumSize(800, 300);
+    wave1->getAxis(Qt::Horizontal)->setRange(0, FS / 2);
+    wave1->getAxis(Qt::Horizontal)->setLabelFormat("%g");
+    wave1->getAxis(Qt::Horizontal)->setTitleText("Samples");
+    wave1->getAxis(Qt::Vertical)->setRange(0, 120);
+    wave1->getAxis(Qt::Vertical)->setTitleText("Audio level");
+    wave1->setSeries(points2);
+
     wave2 = new Wave();
     wave2->setMinimumSize(800, 300);
     wave2->getAxis(Qt::Horizontal)->setRange(0, FS / 2);
     wave2->getAxis(Qt::Horizontal)->setLabelFormat("%g");
-    wave2->getAxis(Qt::Horizontal)->setTitleText("Samples");
-    wave2->getAxis(Qt::Vertical)->setRange(0, 120);
-    wave2->getAxis(Qt::Vertical)->setTitleText("Audio level");
-    wave2->setSeries(points2);
+    wave2->getAxis(Qt::Vertical)->setRange(0, 2000);
+    //wave2->getAxis(Qt::Vertical)->setTitleText("Audio level");
+    wave2->setSeries(points3);
 
-    /*wave3 = new Wave();
+    wave3 = new Wave();
     wave3->setMinimumSize(800, 300);
     wave3->getAxis(Qt::Horizontal)->setRange(0, FS / 2);
     wave3->getAxis(Qt::Horizontal)->setLabelFormat("%g");
-    wave3->getAxis(Qt::Vertical)->setRange(0, 5);
+    wave3->getAxis(Qt::Vertical)->setRange(0, 2000);
     //wave3->getAxis(Qt::Vertical)->setTitleText("Audio level");
-    wave3->setSeries(points3);*/
+    wave3->setSeries(points3);
 
+    mainLayout->addWidget(wave1);
     mainLayout->addWidget(wave2);
-    //mainLayout->addWidget(wave3);
     widget->setLayout(mainLayout);
     setCentralWidget(widget);
 
